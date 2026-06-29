@@ -40,16 +40,16 @@ class Limiter:
     async def _acquire_all(self, resources: list[Resource]):
         acquired: list[Resource] = []
         try:
-            for resource in resources:
-                try:
-                    async with asyncio.timeout(self.timeout):
+            try:
+                async with asyncio.timeout(self.timeout):
+                    for resource in resources:
                         await resource._semaphore.acquire()
-                    acquired.append(resource)
-                except TimeoutError:
-                    raise HTTPException(
-                        status_code=503,
-                        detail="Server busy, please retry later",
-                    )
+                        acquired.append(resource)
+            except TimeoutError:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Server busy, please retry later",
+                )
             yield
         finally:
             for resource in reversed(acquired):
