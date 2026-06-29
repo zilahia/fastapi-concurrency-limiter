@@ -21,18 +21,10 @@ def build_app(capacity: int = 1, timeout: float = 0.1):
     return app, resource, limiter
 
 
-async def get(app, path="/test"):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        return await client.get(path)
-
-
-async def get_persistent(client, path="/test"):
-    return await client.get(path)
-
-
 async def test_successful_request():
     app, _, _ = build_app(capacity=2)
-    r = await get(app)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.get("/test")
     assert r.status_code == 200
     assert r.json() == {"ok": True}
 
@@ -54,8 +46,8 @@ async def test_503_when_capacity_exhausted():
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         task = asyncio.create_task(client.get("/slow"))
-        await started.wait()           # first request is inside the handler, holding the semaphore
-        r2 = await client.get("/slow") # second request should time out and get 503
+        await started.wait()
+        r2 = await client.get("/slow")
         can_finish.set()
         r1 = await task
 
@@ -65,7 +57,6 @@ async def test_503_when_capacity_exhausted():
 
 
 async def test_semaphore_released_after_request():
-    """Sequential requests must both succeed — semaphore released between them."""
     app, _, _ = build_app(capacity=1, timeout=1.0)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         r1 = await client.get("/test")
@@ -75,7 +66,6 @@ async def test_semaphore_released_after_request():
 
 
 async def test_semaphore_released_after_endpoint_exception():
-    """Semaphore must be released even when the endpoint raises."""
     resource = Resource(1)
     limiter = Limiter(timeout=1.0, resources=[resource])
     app = FastAPI()
@@ -90,53 +80,37 @@ async def test_semaphore_released_after_endpoint_exception():
 
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        r1 = await client.get("/boom")  # raises internally → 500
-        r2 = await client.get("/boom")  # must not be blocked
+        r1 = await client.get("/boom")
+        r2 = await client.get("/boom")
 
-    assert call_count == 2  # both requests reached the handler
+    assert call_count == 2
 
 
-async def test_resource_ordering_prevents_deadlock():
-    """Regardless of the order passed to @limiter.resources(), resources are
-    always acquired in the canonical order registered with the Limiter."""
+async def test_wrong_resource_order_raises():
     db = Resource(1)
     fs = Resource(1)
-    limiter = Limiter(timeout=1.0, resources=[db, fs])  # canonical: db first
+    limiter = Limiter(timeout=1.0, resources=[db, fs])
     app = FastAPI()
 
-    @app.get("/ab")
-    @limiter.resources([db, fs])
-    async def ab():
-        return {"order": "db,fs"}
-
-    @app.get("/ba")
-    @limiter.resources([fs, db])  # reversed — limiter should still acquire db→fs
-    async def ba():
-        return {"order": "fs,db"}
-
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        r1 = await client.get("/ab")
-        r2 = await client.get("/ba")
-
-    assert r1.status_code == 200
-    assert r2.status_code == 200
+    with pytest.raises(ValueError, match="registration order"):
+        @app.get("/bad")
+        @limiter.resources([fs, db])
+        async def bad():
+            return {}
 
 
 async def test_unregistered_resource_raises():
     limiter = Limiter(timeout=1.0, resources=[Resource(1)])
-    foreign = Resource(1)
     app = FastAPI()
 
     with pytest.raises(ValueError, match="not registered"):
-
         @app.get("/x")
-        @limiter.resources([foreign])
+        @limiter.resources([Resource(1)])
         async def x():
             return {}
 
 
 async def test_concurrent_requests_within_capacity():
-    """All requests complete successfully when concurrent count ≤ capacity."""
     resource = Resource(3)
     limiter = Limiter(timeout=1.0, resources=[resource])
     app = FastAPI()
