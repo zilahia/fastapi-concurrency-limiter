@@ -2,9 +2,24 @@
 name = "fastapi-concurrency-limiter"
 version = "0.1.0"
 description = "Semaphore-based concurrency limiter for FastAPI"
-requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "David Zilahi", email = "zilahia@gmail.com"}]
+keywords = ["fastapi", "concurrency", "semaphore", "rate-limiting", "async"]
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.100.0",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Framework :: FastAPI",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Typing :: Typed",
 ]
 
 [tool.poetry]

@@ -42,9 +42,10 @@ class Limiter:
         try:
             for resource in resources:
                 try:
-                    await asyncio.wait_for(resource._semaphore.acquire(), timeout=self.timeout)
+                    async with asyncio.timeout(self.timeout):
+                        await resource._semaphore.acquire()
                     acquired.append(resource)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     raise HTTPException(
                         status_code=503,
                         detail="Server busy, please retry later",
