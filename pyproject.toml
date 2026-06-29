@@ -22,6 +22,10 @@ classifiers = [
     "Typing :: Typed",
 ]
 
+[project.urls]
+Homepage = "https://github.com/zilahia/fastapi-concurrency-limiter
+Repository = "https://github.com/zilahia/fastapi-concurrency-limiter"
+
 [tool.poetry]
 packages = [{include = "fastapi_concurrency_limiter", from = "src"}]
 
