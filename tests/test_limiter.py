@@ -80,8 +80,8 @@ async def test_semaphore_released_after_endpoint_exception():
 
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        r1 = await client.get("/boom")
-        r2 = await client.get("/boom")
+        await client.get("/boom")
+        await client.get("/boom")
 
     assert call_count == 2
 
@@ -93,6 +93,7 @@ async def test_wrong_resource_order_raises():
     app = FastAPI()
 
     with pytest.raises(ValueError, match="registration order"):
+
         @app.get("/bad")
         @limiter.resources([fs, db])
         async def bad():
@@ -104,6 +105,7 @@ async def test_unregistered_resource_raises():
     app = FastAPI()
 
     with pytest.raises(ValueError, match="not registered"):
+
         @app.get("/x")
         @limiter.resources([Resource(1)])
         async def x():

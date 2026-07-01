@@ -56,3 +56,9 @@ pyrightconfig.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Project specific
+/examples/benchmark/evaluator/*.csv
+/examples/benchmark/evaluator/*.png
+/examples/benchmark/test_app/data
+/examples/benchmark/test_app/*.db
