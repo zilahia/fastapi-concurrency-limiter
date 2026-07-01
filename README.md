@@ -25,12 +25,12 @@ Messages endpoint:
 - VU count drops back to 10 to observe recovery
 
 #### Without limiting
-<img src="doc/chart_original.png" width="400" alt="Chart showing results without limiting">
+<img src="https://raw.githubusercontent.com/zilahia/fastapi-concurrency-limiter/main/doc/chart_original.png" width="400" alt="Chart showing results without limiting">
 
 The overloaded `messages` endpoint heavily affects the `file` endpoint. At peak load there are virtually no successful requests from either endpoint, because responses arrive too late for the client. When load drops, the system takes around 10 seconds to recover — stale requests queued during the spike must drain before throughput returns to normal.
 
 #### With limiting
-<img src="doc/chart_fixed.png" width="400" alt="Chart showing results with limiting">
+<img src="https://raw.githubusercontent.com/zilahia/fastapi-concurrency-limiter/main/doc/chart_fixed.png" width="400" alt="Chart showing results with limiting">
 
 Even at steady state, performance is better: capping the database to 5 concurrent requests lets it operate more efficiently and use fewer resources, which benefits the `file` endpoint as well. When load spikes, the `file` endpoint is unaffected — system load stays bounded. Excess requests are rejected with HTTP 503 before they can go stale, so the error count stays well below the request count and errors are predictable 503s rather than opaque timeouts. When load returns to normal, throughput recovers immediately because there is no backlog of stale requests.
 
