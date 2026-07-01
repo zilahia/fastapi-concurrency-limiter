@@ -11,9 +11,9 @@ from fastapi import FastAPI
 
 DB_PATH = "messages.db"
 DATA_FILE = "data/data.txt"
-FILE_SIZE=5000
-FILE_CHUNKSIZE=1024
-DB_SIZE=1_000_000
+FILE_SIZE = 5000
+FILE_CHUNKSIZE = 1024
+DB_SIZE = 1_000_000
 
 WORDS = [
     "hello",
@@ -66,12 +66,9 @@ async def lifespan(_app: FastAPI):
     print(f"size: {FILE_SIZE}")
     print(f"chunksize: {FILE_CHUNKSIZE}")
     print(f"chunksize: {DB_SIZE}")
-    
-    
+
     Path("data").mkdir(exist_ok=True)
-    random_text = "".join(
-        random.choices(string.ascii_letters + string.digits + " ", k=FILE_SIZE)
-    )
+    random_text = "".join(random.choices(string.ascii_letters + string.digits + " ", k=FILE_SIZE))
     async with aiofiles.open(DATA_FILE, "w") as f:
         await f.write(random_text)
 
@@ -101,19 +98,21 @@ async def lifespan(_app: FastAPI):
 
     yield
 
+
 async def common_read_file() -> str:
     chunks: list[str] = []
-    async with aiofiles.open(DATA_FILE, "r") as f:
+    async with aiofiles.open(DATA_FILE) as f:
         while chunk := await f.read(FILE_CHUNKSIZE):
             chunks.append(chunk)
     return "".join(chunks)
+
 
 async def common_read_messages() -> list[dict[str, Any]]:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
-            "SELECT message_id, user_id, message, created_at FROM messages WHERE user_id = 1 ORDER BY RANDOM() LIMIT 100"
+            "SELECT message_id, user_id, message, created_at FROM messages "
+            "WHERE user_id = 1 ORDER BY RANDOM() LIMIT 100"
         ) as cursor:
             rows = await cursor.fetchall()
     return [dict(row) for row in rows]
-
